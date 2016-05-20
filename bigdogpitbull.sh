@@ -25,11 +25,11 @@ Download () {
    read -p "How many recent videos do you wish to download? " qty
    if [ "$qty" -gt 0 ]; then
       ./.giant_bomb_cli.py -l $qty --quality hd --download
+      # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
    else
       echo "Aborted. Returning to main menu.\n"
-      Menu
    fi
-
+   Menu
 }
 
 Search () {

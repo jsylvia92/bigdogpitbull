@@ -15,7 +15,8 @@ Menu () {
          ;;
          3) exit
          ;;
-         *) echo "Oops, try again.";;
+         *) echo "Oops, try again."
+         ;;
       esac
    done
 }

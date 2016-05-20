@@ -2,6 +2,10 @@
 
 RE='^[0-9]$' # regex for user input error checking
 
+# TODO:
+#    add options menu:
+#       video download quality
+#       download directory
 Menu () {
    menuFlag=0 # menu options print if 0 to prevent stdout clutter
    while true;
@@ -51,8 +55,12 @@ Download () {
    done
 }
 
-# incomplete for now. Plans include having an initial search and then asking if the user would
-# like to download listed videos
+# TODO:
+#    add search queries: search by name and/or video type, or by ID
+#    add descending/ascending
+#    add prompt to download listed videos, try another search, or quit to menu
+#    change "0 to go back" behavior to go back to previous input
+#       add "q to quit to menu" option after above change
 Search () {
    echo
    read -p $'\e[1mEnter search terms (0 to go back): \e[0m' searchTerms
@@ -69,7 +77,7 @@ Search () {
          break
       elif [ "$retval" == 0 ];
       then
-         echo "COMMAND WILL BE PLACED HERE WHEN I'M NOT TOO TIRED TO TYPE IT IN"
+         ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms"
          break
       fi
    done

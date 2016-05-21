@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RE='^[0-9]$' # regex for user input error checking
+RE='^[0-9]+$' # regex for user input error checking
 
 # TODO:
 #    add options menu:
@@ -14,43 +14,87 @@ Menu () {
       then
          echo -e "\n\e[1mWhat would you like to do?\e[0m"
          echo "   1. Download recent videos"
-         echo "   2. Search for videos by name"
+         echo "   2. Search for videos"
          echo "   3. Quit"
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' mainMenu;
       case $mainMenu in
-         1) Download
+         1) RecentDownload
          menuFlag=0
-         continue
          ;;
-         2) Search
+         2) PreSearch
          menuFlag=0
-         continue
          ;;
-         3) ;;
+         3) break
+         ;;
          *) echo -e "\e[92mInvalid input, try again.\e[39m"
-         continue
          ;;
       esac
-      break
    done
 }
 
-Download () {
+RecentDownload () {
    echo
    while read -p $'\e[1mHow many recent videos do you wish to download? (0 to go back): \e[0m' qty;
    do
       IntsOnly $qty
       retval=$?
-      if [ "$retval" == 2 ];
+      if [ "$retval" == 2 ]; # user entered 0, go back
       then
-         break
+         return
       elif [ "$retval" == 0 ];
       then
+         echo
          ./.giant_bomb_cli.py -l $qty --quality hd --download
          # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
+         break
       fi
+   done
+}
+
+PreSearch () {
+   menuFlag=0 # menu options print if 0 to prevent stdout clutter
+   while true;
+   do
+      if [ "$menuFlag" == 0 ];
+      then
+         echo -e "\n\e[1mHow would you like to search?\e[0m"
+         echo "   1. By key terms and/or video type"
+         echo "   2. By video ID"
+         echo "   3. Cancel"
+         menuFlag=1
+      fi
+      read -p $'\e[1mEnter your choice: \e[0m' searchOpt;
+      case $searchOpt in
+         1) Search
+         menuFlag=0
+         ;;
+         2) IDSearch
+         menuFlag=0
+         ;;
+         3) break
+         ;;
+         *) echo -e "\e[92mInvalid input, try again.\e[39m"
+         ;;
+      esac
+   done
+}
+
+IDSearch () {
+   while read -p $'\e[1mEnter video ID (0 to go back): \e[0m' vID;
+   do
+      IntsOnly $vID
+      retval=$?
+      if [ "$retval" == 2 ]; # if input was 0, go back
+      then
+         return
+      elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
+      then
+         echo
+         ./.giant_bomb_cli.py --filter --id $vID
+      fi
+      break
    done
 }
 
@@ -69,7 +113,7 @@ Search () {
    echo "   5. Endurance Run"
    echo "   6. Events"
    echo "   7. Trailers"
-   echo "   8. Premium, Features"
+   echo "   8. Features"
    echo "   9. Premium"
    echo "   10. Extra Life"
    echo "   11. Encyclopedia Bombastica"
@@ -77,6 +121,9 @@ Search () {
    echo "   13. Metal Gear Scanlon"
    echo "   14. VinnyVania"
    echo "   15. Breaking Brad"
+   echo "   16. Best of Giant Bomb"
+   echo "   17. Game Tapes"
+   echo "   18. Kerbal: Project B.E.A.S.T."
    while true;
    do
       read -p $'\e[1mEnter your choice (0 to go back): \e[0m' videoType
@@ -104,7 +151,7 @@ Search () {
          echo -e "You entered: \e[1mTrailers\e[0m"
          ;;
          8) videoType=8
-         echo -e "You entered: \e[1mPremium Features\e[0m"
+         echo -e "You entered: \e[1mFeatures\e[0m"
          ;;
          9) videoType=10
          echo -e "You entered: \e[1mPremium\e[0m"
@@ -127,6 +174,15 @@ Search () {
          15) videoType=19
          echo -e "You entered: \e[1mBreaking Brad\e[0m"
          ;;
+         16) videoType=20
+         echo -e "You entered: \e[1mBest of Giant Bomb\e[0m"
+         ;;
+         17) videoType=21
+         echo -e "You entered: \e[1mGame Tapes\e[0m"
+         ;;
+         18) videoType=22
+         echo -e "You entered: \e[1mKerbal: Project B.E.A.S.T.\e[0m"
+         ;;
          *) echo -e "\e[92mInvalid input, try again.\e[39m"
          continue
          ;;
@@ -147,6 +203,7 @@ Search () {
          return
       elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
       then
+         echo
          if [ "$videoType" == 0 ];
          then
             ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms"

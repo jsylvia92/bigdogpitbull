@@ -99,9 +99,8 @@ IDSearch () {
 }
 
 # TODO:
-#    add prompt to download listed videos, try another search, or quit to menu
 #    change "0 to go back" behavior to go back to previous input
-#       add "q to quit to menu" option after above change
+#    add "q to quit to menu" option after above change
 Search () {
    echo -e "\n\e[1mWould you like to filter by video type?\e[0m"
    echo "   0. Cancel search"
@@ -227,12 +226,38 @@ Search () {
          then
             ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --sort "$sort"
          else
-            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type $videoType --sort "$sort"
+            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
          fi
-         break # query complete, return to main menu (temporary)
+         echo -e "\n\e[1mWould you like to download these videos?\e[0m"
+         echo "   1. Yes, download them"
+         echo "   2. No, don't download them"
+         while read -p $'\e[1mEnter your choice: \e[0m' dl;
+         do
+            case $dl in
+               1) DownloadResults $qty $searchTerms $sort $videoType
+               ;;
+               2)
+               ;;
+               *) echo -e "\e[92mInvalid input, try again.\e[39m"
+               continue
+               ;;
+            esac
+            break # download prompt finished, moving on
+         done
+         break # query complete, return to main menu
       fi
       continue # return to list prompt if input is invalid
    done
+}
+
+DownloadResults () {
+   echo
+   if [ "$4" == 0 ]; # if no video type was selected
+   then
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --quality hd --download
+   else
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --quality hd --download
+   fi
 }
 
 # lukewarm attempt at making input error checking modular

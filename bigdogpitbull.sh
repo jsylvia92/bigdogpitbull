@@ -60,20 +60,20 @@ PreSearch () {
       if [ "$menuFlag" == 0 ];
       then
          echo -e "\n\e[1mHow would you like to search?\e[0m"
+         echo "   0. Cancel"
          echo "   1. By key terms and/or video type"
          echo "   2. By video ID"
-         echo "   3. Cancel"
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' searchOpt;
       case $searchOpt in
+         0) break
+         ;;
          1) Search
          menuFlag=0
          ;;
          2) IDSearch
          menuFlag=0
-         ;;
-         3) break
          ;;
          *) echo -e "\e[92mInvalid input, try again.\e[39m"
          ;;
@@ -99,13 +99,12 @@ IDSearch () {
 }
 
 # TODO:
-#    add search by ID
-#    add descending/ascending
 #    add prompt to download listed videos, try another search, or quit to menu
 #    change "0 to go back" behavior to go back to previous input
 #       add "q to quit to menu" option after above change
 Search () {
    echo -e "\n\e[1mWould you like to filter by video type?\e[0m"
+   echo "   0. Cancel search"
    echo "   1. No video type filter"
    echo "   2. Video Reviews"
    echo "   3. Quick Looks"
@@ -126,9 +125,10 @@ Search () {
    echo "   18. Kerbal: Project B.E.A.S.T."
    while true;
    do
-      read -p $'\e[1mEnter your choice (0 to go back): \e[0m' videoType
+      read -p $'\e[1mEnter your choice: \e[0m' videoType
       case $videoType in
-         0) return;;
+         0) return
+         ;;
          1) videoType=0
          echo -e "You entered: \e[1mNo filter\e[0m"
          ;;
@@ -203,12 +203,31 @@ Search () {
          return
       elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
       then
+         echo -e "\e[1mSort in...\e[0m"
+         echo "   0. Cancel"
+         echo "   1. Ascending order?"
+         echo "   2. Descending order?"
+         while read -p $'\e[1mEnter your choice: \e[0m' ord;
+         do
+            case $ord in
+               0) return
+               ;;
+               1) sort="asc"
+               ;;
+               2) sort="desc"
+               ;;
+               *) echo -e "\e[92mInvalid input, try again.\e[39m"
+               continue
+               ;;
+            esac
+            break
+         done
          echo
-         if [ "$videoType" == 0 ];
+         if [ "$videoType" == 0 ]; # if no video type was selected
          then
-            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms"
+            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --sort "$sort"
          else
-            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type $videoType
+            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type $videoType --sort "$sort"
          fi
          break # query complete, return to main menu (temporary)
       fi

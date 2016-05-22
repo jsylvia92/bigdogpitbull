@@ -81,6 +81,8 @@ PreSearch () {
    done
 }
 
+# TODO:
+#    add download prompt
 IDSearch () {
    while read -p $'\e[1mEnter video ID (0 to go back): \e[0m' vID;
    do
@@ -99,31 +101,35 @@ IDSearch () {
 }
 
 # TODO:
-#    change "0 to go back" behavior to go back to previous input
-#    add "q to quit to menu" option after above change
+#    add "q to quit to menu" option
 Search () {
-   echo -e "\n\e[1mWould you like to filter by video type?\e[0m"
-   echo "   0. Cancel search"
-   echo "   1. No video type filter"
-   echo "   2. Video Reviews"
-   echo "   3. Quick Looks"
-   echo "   4. TANG"
-   echo "   5. Endurance Run"
-   echo "   6. Events"
-   echo "   7. Trailers"
-   echo "   8. Features"
-   echo "   9. Premium"
-   echo "   10. Extra Life"
-   echo "   11. Encyclopedia Bombastica"
-   echo "   12. Unfinished"
-   echo "   13. Metal Gear Scanlon"
-   echo "   14. VinnyVania"
-   echo "   15. Breaking Brad"
-   echo "   16. Best of Giant Bomb"
-   echo "   17. Game Tapes"
-   echo "   18. Kerbal: Project B.E.A.S.T."
+   menuFlag=0
    while true;
    do
+      if [ "$menuFlag" == 0 ];
+      then
+         echo -e "\n\e[1mWould you like to filter by video type?\e[0m"
+         echo "   0. Back to search menu"
+         echo "   1. No video type filter"
+         echo "   2. Video Reviews"
+         echo "   3. Quick Looks"
+         echo "   4. TANG"
+         echo "   5. Endurance Run"
+         echo "   6. Events"
+         echo "   7. Trailers"
+         echo "   8. Features"
+         echo "   9. Premium"
+         echo "   10. Extra Life"
+         echo "   11. Encyclopedia Bombastica"
+         echo "   12. Unfinished"
+         echo "   13. Metal Gear Scanlon"
+         echo "   14. VinnyVania"
+         echo "   15. Breaking Brad"
+         echo "   16. Best of Giant Bomb"
+         echo "   17. Game Tapes"
+         echo "   18. Kerbal: Project B.E.A.S.T."
+         menuFlag=1
+      fi
       read -p $'\e[1mEnter your choice: \e[0m' videoType
       case $videoType in
          0) return
@@ -186,67 +192,76 @@ Search () {
          continue
          ;;
       esac
-      break
-   done
-   read -p $'\e[1mEnter search terms (0 to go back): \e[0m' searchTerms
-   if [ "$searchTerms" == 0 ]; # go to main menu if input is 0
-   then
-      return
-   fi
-   while read -p $'\e[1mHow many videos would you like to list? (0 to go back): \e[0m' qty;
-   do
-      IntsOnly $qty
-      retval=$?
-      if [ "$retval" == 2 ]; # if input was 0, go back
-      then
-         return
-      elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
-      then
-         echo -e "\e[1mSort in...\e[0m"
-         echo "   0. Cancel"
-         echo "   1. Ascending order?"
-         echo "   2. Descending order?"
-         while read -p $'\e[1mEnter your choice: \e[0m' ord;
-         do
-            case $ord in
-               0) return
-               ;;
-               1) sort="asc"
-               ;;
-               2) sort="desc"
-               ;;
-               *) echo -e "\e[92mInvalid input, try again.\e[39m"
-               continue
-               ;;
-            esac
-            break
-         done
-         echo
-         if [ "$videoType" == 0 ]; # if no video type was selected
+      while read -p $'\e[1mEnter search terms (0 to go back): \e[0m' searchTerms;
+      do
+         menuFlag=0 # for if user opts to return to video type filter menu
+         if [ "$searchTerms" != 0 ]; # if user did not opt to go back, continue
          then
-            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --sort "$sort"
+            while read -p $'\e[1mHow many videos would you like to list? (0 to go back): \e[0m' qty;
+            do
+               IntsOnly $qty
+               retval=$?
+               if [ "$retval" == 2 ]; # if input was 0, go back to previous prompt
+               then
+                  break
+               elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
+               then
+                  backFlag=0 # will return to # videos to list if set to 1
+                  echo -e "\e[1mSort in...\e[0m"
+                  echo "   0. Cancel"
+                  echo "   1. Ascending order?"
+                  echo "   2. Descending order?"
+                  while read -p $'\e[1mEnter your choice: \e[0m' ord;
+                  do
+                     case $ord in
+                        0) backFlag=1
+                        ;;
+                        1) sort="asc"
+                        ;;
+                        2) sort="desc"
+                        ;;
+                        *) echo -e "\e[92mInvalid input, try again.\e[39m"
+                        continue
+                        ;;
+                     esac
+                     break
+                  done
+                  if [ "$backFlag" == 1 ];
+                  then
+                     continue # return to # of videos listed prompt
+                  fi
+                  echo
+                  if [ "$videoType" == 0 ]; # if no video type was selected
+                  then
+                     ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --sort "$sort"
+                  else
+                     ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
+                  fi
+                  echo -e "\n\e[1mWould you like to download these videos?\e[0m"
+                  echo "   1. Yes, download them"
+                  echo "   2. No, don't download them"
+                  while read -p $'\e[1mEnter your choice: \e[0m' dl;
+                  do
+                     case $dl in
+                        1) DownloadResults $qty $searchTerms $sort $videoType
+                        return
+                        ;;
+                        2) return
+                        ;;
+                        *) echo -e "\e[92mInvalid input, try again.\e[39m"
+                        continue
+                        ;;
+                     esac
+                  done
+               fi
+               continue # return to list prompt if input is invalid
+            done
+            continue # user entered 0 at # of videos to list, so return to previous prompt
          else
-            ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
+            break # if user opted to go back during search terms prompt, return to video type list
          fi
-         echo -e "\n\e[1mWould you like to download these videos?\e[0m"
-         echo "   1. Yes, download them"
-         echo "   2. No, don't download them"
-         while read -p $'\e[1mEnter your choice: \e[0m' dl;
-         do
-            case $dl in
-               1) DownloadResults $qty $searchTerms $sort $videoType
-               ;;
-               2)
-               ;;
-               *) echo -e "\e[92mInvalid input, try again.\e[39m"
-               continue
-               ;;
-            esac
-            break # download prompt finished, moving on
-         done
-         break # query complete, return to main menu
-      fi
-      continue # return to list prompt if input is invalid
+      done
+      continue # user entered 0; return to filter by video type prompt
    done
 }
 

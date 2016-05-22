@@ -81,8 +81,6 @@ PreSearch () {
    done
 }
 
-# TODO:
-#    add download prompt
 IDSearch () {
    while read -p $'\e[1mEnter video ID (0 to go back): \e[0m' vID;
    do
@@ -98,10 +96,27 @@ IDSearch () {
       fi
       break
    done
+   echo -e "\n\e[1mWould you like to download this video?\e[0m"
+   echo "   1. Yes, download it"
+   echo "   2. No, don't download it"
+   while read -p $'\e[1mEnter your choice: \e[0m' dl;
+   do
+      case $dl in
+         1) ./.giant_bomb_cli.py --filter --id $vID --quality hd --download
+         return
+         ;;
+         2) return
+         ;;
+         *) echo -e "\e[92mInvalid input, try again.\e[39m"
+         continue
+         ;;
+      esac
+   done
 }
 
 # TODO:
 #    add "q to quit to menu" option
+#    cry at how stupid big I let this function become
 Search () {
    menuFlag=0
    while true;
@@ -254,7 +269,7 @@ Search () {
                      esac
                   done
                fi
-               continue # return to list prompt if input is invalid
+               continue # return to list video qty prompt if input is invalid
             done
             continue # user entered 0 at # of videos to list, so return to previous prompt
          else

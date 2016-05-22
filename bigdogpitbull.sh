@@ -2,6 +2,7 @@
 
 RE='^[0-9]+$' # regex for user input error checking
 setQuality="hd" # default quality
+offsetQty=0 # default results offset
 
 Menu () {
    menuFlag=0 # menu options print if 0 to prevent stdout clutter
@@ -38,9 +39,8 @@ Menu () {
 
 # TODO:
 #    add options:
-#       store video quality in config file
-#       offset
 #       download directory
+#       store settings in config file
 
 Settings () {
    menuFlag=0
@@ -65,7 +65,7 @@ Settings () {
          1) VideoQuality
          menuFlag=0
          ;;
-         2) #OffsetResults
+         2) OffsetResults
          menuFlag=0
          ;;
          3) #Directory
@@ -130,6 +130,23 @@ VideoQuality () {
    done
 }
 
+OffsetResults () {
+   echo -e "\n\e[1mSet Results Offset\e[0m"
+   echo "   Current setting: $offsetQty"
+   while read -p $'\e[1mEnter results offset: \e[0m' qty;
+   do
+      IntsOnly "$qty"
+      retval=$?
+      if [ "$retval" == 1 ]; # user entered non-integral input
+      then
+         continue # therefore, return to start of loop and try again
+      else
+         offsetQty=$qty
+         return
+      fi
+   done
+}
+
 RecentDownload () {
    echo
    while read -p $'\e[1mHow many recent videos do you wish to download? (0 to go back): \e[0m' qty;
@@ -142,7 +159,7 @@ RecentDownload () {
       elif [ "$retval" == 0 ];
       then
          echo
-         ./.giant_bomb_cli.py -l "$qty" --quality "$setQuality" --download
+         ./.giant_bomb_cli.py -l "$qty" --offset "$offsetQty" --quality "$setQuality" --download
          # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
          break
       fi
@@ -352,9 +369,9 @@ Search () {
                   echo
                   if [ "$videoType" == 0 ]; # if no video type was selected
                   then
-                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --offset "$offsetQty" --sort "$sort"
                   else
-                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --offset "$offsetQty" --sort "$sort"
                   fi
                   echo -e "\n\e[1mWould you like to download these videos?\e[0m"
                   echo "   1. Yes, download them"
@@ -388,20 +405,22 @@ DownloadResults () {
    echo
    if [ "$4" == 0 ]; # if no video type was selected
    then
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --quality "$setQuality" --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --offset "$offsetQty" --quality "$setQuality" --download
    else
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --quality "$setQuality" --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --offset "$offsetQty" --quality "$setQuality" --download
    fi
 }
 
 # lukewarm attempt at making input error checking modular
-# returns 1 if non-integral, 2 if input is 0, and 0 is input is an integer
+# returns 1 if non-integral, 2 if input is 0, and 0 is input is a nonzero integer
+# TODO:
+#    remove invalid input prompt to improve modularity
 IntsOnly () {
    qty=$1
-   if ! [[ "$qty" =~ "$RE" ]];
+   if ! [[ $qty =~ $RE ]];
    then
-      echo -e "\e[92mInvalid input, try again.\e[39m" >&2;
       retval=1
+      echo -e "\e[92mInvalid input, try again.\e[39m" >&2;
    elif [ "$qty" == 0 ];
    then
       retval=2

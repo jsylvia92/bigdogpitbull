@@ -115,7 +115,6 @@ IDSearch () {
 }
 
 # TODO:
-#    add "q to quit to menu" option
 #    cry at how stupid big I let this function become
 Search () {
    menuFlag=0
@@ -207,13 +206,20 @@ Search () {
          continue
          ;;
       esac
-      while read -p $'\e[1mEnter search terms (0 to go back): \e[0m' searchTerms;
+      while read -p $'\e[1mEnter search terms (0 to go back, q to search menu): \e[0m' searchTerms;
       do
          menuFlag=0 # for if user opts to return to video type filter menu
-         if [ "$searchTerms" != 0 ]; # if user did not opt to go back, continue
+         if [ "$searchTerms" == "q" ];
          then
-            while read -p $'\e[1mHow many videos would you like to list? (0 to go back): \e[0m' qty;
+            return # quit to menu
+         elif [ "$searchTerms" != 0 ]; # if user did not opt to go back, continue
+         then
+            while read -p $'\e[1mHow many videos would you like to list? (0 to go back, q to search menu): \e[0m' qty;
             do
+               if [ "$qty" == "q" ];
+               then
+                  return # quit to menu
+               fi
                IntsOnly $qty
                retval=$?
                if [ "$retval" == 2 ]; # if input was 0, go back to previous prompt
@@ -223,10 +229,10 @@ Search () {
                then
                   backFlag=0 # will return to # videos to list if set to 1
                   echo -e "\e[1mSort in...\e[0m"
-                  echo "   0. Cancel"
+                  echo "   0. Go back"
                   echo "   1. Ascending order?"
                   echo "   2. Descending order?"
-                  while read -p $'\e[1mEnter your choice: \e[0m' ord;
+                  while read -p $'\e[1mEnter your choice (q to search menu): \e[0m' ord;
                   do
                      case $ord in
                         0) backFlag=1
@@ -234,6 +240,8 @@ Search () {
                         1) sort="asc"
                         ;;
                         2) sort="desc"
+                        ;;
+                        q) return
                         ;;
                         *) echo -e "\e[92mInvalid input, try again.\e[39m"
                         continue

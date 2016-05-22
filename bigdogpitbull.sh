@@ -1,11 +1,8 @@
 #!/bin/bash
 
 RE='^[0-9]+$' # regex for user input error checking
+setQuality="hd" # default quality
 
-# TODO:
-#    add options menu:
-#       video download quality
-#       download directory
 Menu () {
    menuFlag=0 # menu options print if 0 to prevent stdout clutter
    while true;
@@ -15,18 +12,76 @@ Menu () {
          echo -e "\n\e[1mWhat would you like to do?\e[0m"
          echo "   1. Download recent videos"
          echo "   2. Search for videos"
-         echo "   3. Quit"
+         echo "   3. Settings"
+         echo "   4. Quit"
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' mainMenu;
-      case $mainMenu in
+      case "$mainMenu" in
          1) RecentDownload
          menuFlag=0
          ;;
          2) PreSearch
          menuFlag=0
          ;;
-         3) break
+         3) Settings
+         menuFlag=0
+         ;;
+         4) break
+         ;;
+         *) echo -e "\e[92mInvalid input, try again.\e[39m"
+         ;;
+      esac
+   done
+   echo
+}
+
+# TODO:
+#    add options:
+#       store video quality in config file
+#       offset
+#       download directory
+
+Settings () {
+   menuFlag=0
+   while true;
+   do
+      if [ "$menuFlag" == 0 ];
+      then
+         echo -e "\n\e[1mSettings\e[0m"
+         echo "   0. Return to main menu"
+         echo "   1. Change video quality"
+         echo "   2. Change results offset"
+         echo "   3. Change download directory"
+         echo "   4. Show video types stored in giant_bomb_cli.py"
+         echo "   5. Help menu for giant_bomb_cli.py flags and usage"
+         echo "   6. Version number of giant_bomb_cli.py"
+         menuFlag=1
+      fi
+      read -p $'\e[1mEnter your choice: \e[0m' settingsMenu;
+      case "$settingsMenu" in
+         0) break
+         ;;
+         1) VideoQuality
+         menuFlag=0
+         ;;
+         2) #OffsetResults
+         menuFlag=0
+         ;;
+         3) #Directory
+         menuFlag=0
+         ;;
+         4) echo
+         ./.giant_bomb_cli.py --dump_video_types
+         menuFlag=0
+         ;;
+         5) echo
+         ./.giant_bomb_cli.py --help
+         menuFlag=0
+         ;;
+         6) echo
+         ./.giant_bomb_cli.py --version
+         menuFlag=0
          ;;
          *) echo -e "\e[92mInvalid input, try again.\e[39m"
          ;;
@@ -34,11 +89,52 @@ Menu () {
    done
 }
 
+VideoQuality () {
+   menuFlag=0
+   while true;
+   do
+      if [ "$menuFlag" == 0 ];
+      then
+         echo -e "\n\e[1mSet Video Quality\e[0m"
+         echo -n "   1. HD"
+         if [ "$setQuality" == "hd" ];
+         then
+            echo -n " (current setting)"
+         fi
+         echo -ne "\n   2. High"
+         if [ "$setQuality" == "high" ];
+         then
+            echo -n " (current setting)"
+         fi
+         echo -ne "\n   3. Low"
+         if [ "$setQuality" == "low" ];
+         then
+            echo -n " (current setting)"
+         fi
+         echo
+         menuFlag=1
+      fi
+      read -p $'\e[1mEnter your choice: \e[0m' qualityOpt;
+      case "$qualityOpt" in
+         1) setQuality=hd
+         ;;
+         2) setQuality=high
+         ;;
+         3) setQuality=low
+         ;;
+         *) echo -e "\e[92mInvalid input, try again.\e[39m"
+         continue
+         ;;
+      esac
+      break
+   done
+}
+
 RecentDownload () {
    echo
    while read -p $'\e[1mHow many recent videos do you wish to download? (0 to go back): \e[0m' qty;
    do
-      IntsOnly $qty
+      IntsOnly "$qty"
       retval=$?
       if [ "$retval" == 2 ]; # user entered 0, go back
       then
@@ -46,7 +142,7 @@ RecentDownload () {
       elif [ "$retval" == 0 ];
       then
          echo
-         ./.giant_bomb_cli.py -l $qty --quality hd --download
+         ./.giant_bomb_cli.py -l "$qty" --quality "$setQuality" --download
          # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
          break
       fi
@@ -66,7 +162,7 @@ PreSearch () {
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' searchOpt;
-      case $searchOpt in
+      case "$searchOpt" in
          0) break
          ;;
          1) Search
@@ -84,7 +180,7 @@ PreSearch () {
 IDSearch () {
    while read -p $'\e[1mEnter video ID (0 to go back): \e[0m' vID;
    do
-      IntsOnly $vID
+      IntsOnly "$vID"
       retval=$?
       if [ "$retval" == 2 ]; # if input was 0, go back
       then
@@ -92,7 +188,7 @@ IDSearch () {
       elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
       then
          echo
-         ./.giant_bomb_cli.py --filter --id $vID
+         ./.giant_bomb_cli.py --filter --id "$vID"
       fi
       break
    done
@@ -101,8 +197,8 @@ IDSearch () {
    echo "   2. No, don't download it"
    while read -p $'\e[1mEnter your choice: \e[0m' dl;
    do
-      case $dl in
-         1) ./.giant_bomb_cli.py --filter --id $vID --quality hd --download
+      case "$dl" in
+         1) ./.giant_bomb_cli.py --filter --id "$vID" --quality "$setQuality" --download
          return
          ;;
          2) return
@@ -145,7 +241,7 @@ Search () {
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' videoType
-      case $videoType in
+      case "$videoType" in
          0) return
          ;;
          1) videoType=0
@@ -220,7 +316,7 @@ Search () {
                then
                   return # quit to menu
                fi
-               IntsOnly $qty
+               IntsOnly "$qty"
                retval=$?
                if [ "$retval" == 2 ]; # if input was 0, go back to previous prompt
                then
@@ -234,7 +330,7 @@ Search () {
                   echo "   2. Descending order?"
                   while read -p $'\e[1mEnter your choice (q to search menu): \e[0m' ord;
                   do
-                     case $ord in
+                     case "$ord" in
                         0) backFlag=1
                         ;;
                         1) sort="asc"
@@ -256,17 +352,17 @@ Search () {
                   echo
                   if [ "$videoType" == 0 ]; # if no video type was selected
                   then
-                     ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --sort "$sort"
                   else
-                     ./.giant_bomb_cli.py -l $qty --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --sort "$sort"
                   fi
                   echo -e "\n\e[1mWould you like to download these videos?\e[0m"
                   echo "   1. Yes, download them"
                   echo "   2. No, don't download them"
                   while read -p $'\e[1mEnter your choice: \e[0m' dl;
                   do
-                     case $dl in
-                        1) DownloadResults $qty $searchTerms $sort $videoType
+                     case "$dl" in
+                        1) DownloadResults "$qty" "$searchTerms" "$sort" "$videoType"
                         return
                         ;;
                         2) return
@@ -292,9 +388,9 @@ DownloadResults () {
    echo
    if [ "$4" == 0 ]; # if no video type was selected
    then
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --quality hd --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --quality "$setQuality" --download
    else
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --quality hd --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --quality "$setQuality" --download
    fi
 }
 
@@ -302,11 +398,11 @@ DownloadResults () {
 # returns 1 if non-integral, 2 if input is 0, and 0 is input is an integer
 IntsOnly () {
    qty=$1
-   if ! [[ $qty =~ $RE ]];
+   if ! [[ "$qty" =~ "$RE" ]];
    then
       echo -e "\e[92mInvalid input, try again.\e[39m" >&2;
       retval=1
-   elif [ $qty == 0 ];
+   elif [ "$qty" == 0 ];
    then
       retval=2
    else

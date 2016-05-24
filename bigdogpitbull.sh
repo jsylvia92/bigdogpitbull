@@ -2,7 +2,7 @@
 
 RE='^[0-9]+$'   # regex for user input error checking
 
-#files for settings storage
+# files for settings storage
 CONFIGDIR=~/.bigdogpitbull
 CONFIG=~/.bigdogpitbull/config
 
@@ -59,8 +59,6 @@ Menu () {
    echo
 }
 
-# TODO:
-#    store settings in config file
 Settings () {
    menuFlag=0
    while true;

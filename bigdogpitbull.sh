@@ -1,8 +1,30 @@
 #!/bin/bash
 
-RE='^[0-9]+$' # regex for user input error checking
-setQuality="hd" # default quality
-offsetQty=0 # default results offset
+RE='^[0-9]+$'   # regex for user input error checking
+
+#files for settings storage
+CONFIGDIR=~/.bigdogpitbull
+CONFIG=~/.bigdogpitbull/config
+
+if [ ! -d "$CONFIGDIR" ]; then
+   mkdir $CONFIGDIR
+   echo -e "\e[1mCreated config directory\e[0m ~/.bigdogpitbull/"
+fi
+# separate checks in case the directory exists, but not the file
+if [ ! -f "$CONFIG" ]; then
+   exec 3>&1 >$CONFIG
+   echo "hd"
+   echo "0"
+   exec >&3-
+   echo -e "\e[1mCreated config file\e[0m ~/.bigdogpitbull/config"
+fi
+
+# read from config file
+config=() # settings array. [0] is quality, [1] is offset
+while read line
+do
+   config+=("$line")
+done < $CONFIG
 
 Menu () {
    menuFlag=0 # menu options print if 0 to prevent stdout clutter
@@ -38,10 +60,7 @@ Menu () {
 }
 
 # TODO:
-#    add options:
-#       download directory
-#       store settings in config file
-
+#    store settings in config file
 Settings () {
    menuFlag=0
    while true;
@@ -52,10 +71,9 @@ Settings () {
          echo "   0. Return to main menu"
          echo "   1. Change video quality"
          echo "   2. Change results offset"
-         echo "   3. Change download directory"
-         echo "   4. Show video types stored in giant_bomb_cli.py"
-         echo "   5. Help menu for giant_bomb_cli.py flags and usage"
-         echo "   6. Version number of giant_bomb_cli.py"
+         echo "   3. Show video types stored in giant_bomb_cli.py"
+         echo "   4. Help menu for giant_bomb_cli.py flags and usage"
+         echo "   5. Version number of giant_bomb_cli.py"
          menuFlag=1
       fi
       read -p $'\e[1mEnter your choice: \e[0m' settingsMenu;
@@ -68,18 +86,15 @@ Settings () {
          2) OffsetResults
          menuFlag=0
          ;;
-         3) #Directory
-         menuFlag=0
-         ;;
-         4) echo
+         3) echo
          ./.giant_bomb_cli.py --dump_video_types
          menuFlag=0
          ;;
-         5) echo
+         4) echo
          ./.giant_bomb_cli.py --help
          menuFlag=0
          ;;
-         6) echo
+         5) echo
          ./.giant_bomb_cli.py --version
          menuFlag=0
          ;;
@@ -97,17 +112,17 @@ VideoQuality () {
       then
          echo -e "\n\e[1mSet Video Quality\e[0m"
          echo -n "   1. HD"
-         if [ "$setQuality" == "hd" ];
+         if [ "${config[0]}" == "hd" ];
          then
             echo -n " (current setting)"
          fi
          echo -ne "\n   2. High"
-         if [ "$setQuality" == "high" ];
+         if [ "${config[0]}" == "high" ];
          then
             echo -n " (current setting)"
          fi
          echo -ne "\n   3. Low"
-         if [ "$setQuality" == "low" ];
+         if [ "${config[0]}" == "low" ];
          then
             echo -n " (current setting)"
          fi
@@ -116,32 +131,43 @@ VideoQuality () {
       fi
       read -p $'\e[1mEnter your choice: \e[0m' qualityOpt;
       case "$qualityOpt" in
-         1) setQuality=hd
+         1) config[0]=hd
          ;;
-         2) setQuality=high
+         2) config[0]=high
          ;;
-         3) setQuality=low
+         3) config[0]=low
          ;;
          *) echo -e "\e[92mInvalid input, try again.\e[39m"
          continue
          ;;
       esac
+      # write settings to file
+      cat > $CONFIG << EOL
+         ${config[0]}
+         ${config[1]}
+EOL
       break
    done
 }
 
 OffsetResults () {
    echo -e "\n\e[1mSet Results Offset\e[0m"
-   echo "   Current setting: $offsetQty"
+   echo "   Current setting: ${config[1]}"
    while read -p $'\e[1mEnter results offset: \e[0m' qty;
    do
       IntsOnly "$qty"
       retval=$?
       if [ "$retval" == 1 ]; # user entered non-integral input
       then
+         echo -e "\e[92mInvalid input, try again.\e[39m"
          continue # therefore, return to start of loop and try again
       else
-         offsetQty=$qty
+         config[1]=$qty
+         # write settings to file
+         cat > $CONFIG << EOL
+            ${config[0]}
+            ${config[1]}
+EOL
          return
       fi
    done
@@ -153,13 +179,16 @@ RecentDownload () {
    do
       IntsOnly "$qty"
       retval=$?
-      if [ "$retval" == 2 ]; # user entered 0, go back
+      if [ "$retval" == 1 ]; # user entered non-integral input
+      then
+         echo -e "\e[92mInvalid input, try again.\e[39m" >&2;
+      elif [ "$retval" == 2 ]; # user entered 0, go back
       then
          return
       elif [ "$retval" == 0 ];
       then
          echo
-         ./.giant_bomb_cli.py -l "$qty" --offset "$offsetQty" --quality "$setQuality" --download
+         ./.giant_bomb_cli.py -l "$qty" --offset "${config[1]}" --quality "${config[0]}" --download
          # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
          break
       fi
@@ -199,7 +228,11 @@ IDSearch () {
    do
       IntsOnly "$vID"
       retval=$?
-      if [ "$retval" == 2 ]; # if input was 0, go back
+      if [ "$retval" == 1 ]; # user entered non-integral input
+      then
+         echo -e "\e[92mInvalid input, try again.\e[39m"
+         continue
+      elif [ "$retval" == 2 ]; # if input was 0, go back
       then
          return
       elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
@@ -215,7 +248,7 @@ IDSearch () {
    while read -p $'\e[1mEnter your choice: \e[0m' dl;
    do
       case "$dl" in
-         1) ./.giant_bomb_cli.py --filter --id "$vID" --quality "$setQuality" --download
+         1) ./.giant_bomb_cli.py --filter --id "$vID" --quality "${config[0]}" --download
          return
          ;;
          2) return
@@ -335,7 +368,11 @@ Search () {
                fi
                IntsOnly "$qty"
                retval=$?
-               if [ "$retval" == 2 ]; # if input was 0, go back to previous prompt
+               if [ "$retval" == 1 ]; # user entered non-integral input
+               then
+                  echo -e "\e[92mInvalid input, try again.\e[39m"
+                  continue
+               elif [ "$retval" == 2 ]; # if input was 0, go back to previous prompt
                then
                   break
                elif [ "$retval" == 0 ]; # if input was a valid integer, proceed to command
@@ -369,9 +406,9 @@ Search () {
                   echo
                   if [ "$videoType" == 0 ]; # if no video type was selected
                   then
-                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --offset "$offsetQty" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --offset "${config[1]}" --sort "$sort"
                   else
-                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --offset "$offsetQty" --sort "$sort"
+                     ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --offset "${config[1]}" --sort "$sort"
                   fi
                   echo -e "\n\e[1mWould you like to download these videos?\e[0m"
                   echo "   1. Yes, download them"
@@ -405,22 +442,18 @@ DownloadResults () {
    echo
    if [ "$4" == 0 ]; # if no video type was selected
    then
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --offset "$offsetQty" --quality "$setQuality" --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --sort "$3" --offset "${config[1]}" --quality "${config[0]}" --download
    else
-      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --offset "$offsetQty" --quality "$setQuality" --download
+      ./.giant_bomb_cli.py -l "$1" --filter --name "$2" --video_type "$4" --sort "$3" --offset "${config[1]}" --quality "${config[0]}" --download
    fi
 }
 
-# lukewarm attempt at making input error checking modular
 # returns 1 if non-integral, 2 if input is 0, and 0 is input is a nonzero integer
-# TODO:
-#    remove invalid input prompt to improve modularity
 IntsOnly () {
    qty=$1
    if ! [[ $qty =~ $RE ]];
    then
       retval=1
-      echo -e "\e[92mInvalid input, try again.\e[39m" >&2;
    elif [ "$qty" == 0 ];
    then
       retval=2
@@ -430,5 +463,4 @@ IntsOnly () {
    return "$retval"
 }
 
-# visions of int main()...
 Menu

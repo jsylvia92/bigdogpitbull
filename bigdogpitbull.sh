@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RE='^[0-9]+$'   # regex for user input error checking
+RE='^[0-9]+$' # regex for user input error checking
 
 # files for settings storage
 CONFIGDIR=~/.bigdogpitbull
@@ -186,9 +186,23 @@ RecentDownload () {
       elif [ "$retval" == 0 ];
       then
          echo
-         ./.giant_bomb_cli.py -l "$qty" --offset "${config[1]}" --quality "${config[0]}" --download
-         # $(dirname "${BASH_SOURCE[0]}")/blah when complete so bigdogpitbull and .py can be moved to PATH
-         break
+         ./.giant_bomb_cli.py -l "$qty" --offset "${config[1]}"
+         echo -e "\n\e[1mWould you like to download these videos?\e[0m"
+         echo "   1. Yes, download them"
+         echo "   2. No, don't download them"
+         while read -p $'\e[1mEnter your choice: \e[0m' dl;
+         do
+            case "$dl" in
+               1) ./.giant_bomb_cli.py -l "$qty" --offset "${config[1]}" --quality "${config[0]}" --download
+               return
+               ;;
+               2) return
+               ;;
+               *) echo -e "\e[92mInvalid input, try again.\e[39m"
+               continue
+               ;;
+            esac
+         done
       fi
    done
 }

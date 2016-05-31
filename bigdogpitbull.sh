@@ -185,11 +185,19 @@ RecentDownload () {
          return
       elif [ "$retval" == 0 ];
       then
+         if [ "$qty" == 1 ];
+         then
+            hotGrammar="this video"
+            hotPronoun="it"
+         else
+            hotGrammar="these videos"
+            hotPronoun="them"
+         fi
          echo
          ./.giant_bomb_cli.py -l "$qty" --offset "${config[1]}"
-         echo -e "\n\e[1mWould you like to download these videos?\e[0m"
-         echo "   1. Yes, download them"
-         echo "   2. No, don't download them"
+         echo -e "\n\e[1mWould you like to download $hotGrammar?\e[0m"
+         echo "   1. Yes, download $hotPronoun"
+         echo "   2. No, don't download $hotPronoun"
          while read -p $'\e[1mEnter your choice: \e[0m' dl;
          do
             case "$dl" in
@@ -422,9 +430,17 @@ Search () {
                   else
                      ./.giant_bomb_cli.py -l "$qty" --filter --name "$searchTerms" --video_type "$videoType" --offset "${config[1]}" --sort "$sort"
                   fi
-                  echo -e "\n\e[1mWould you like to download these videos?\e[0m"
-                  echo "   1. Yes, download them"
-                  echo "   2. No, don't download them"
+                  if [ "$qty" == 1 ];
+                  then
+                     hotGrammar="this video"
+                     hotPronoun="it"
+                  else
+                     hotGrammar="these videos"
+                     hotPronoun="them"
+                  fi
+                  echo -e "\n\e[1mWould you like to download $hotGrammar?\e[0m"
+                  echo "   1. Yes, download $hotPronoun"
+                  echo "   2. No, don't download $hotPronoun"
                   while read -p $'\e[1mEnter your choice: \e[0m' dl;
                   do
                      case "$dl" in
